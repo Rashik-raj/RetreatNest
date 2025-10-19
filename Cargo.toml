@@ -1,0 +1,23 @@
+[package]
+name = "my_retreat_nest"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+migration = {"path" = "migration"}
+anyhow = "1.0.100"
+axum = { version = "0.8.6", features = ["multipart"] }
+dotenvy_macro = "0.15.7"
+sea-orm = { version = "1.1.17", features = ["runtime-tokio-rustls", "sqlx-postgres"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+tokio = { version = "1.47.1", features = ["fs", "io-std", "io-util", "macros", "rt-multi-thread"] }
+tower = "0.5.2"
+tower-http = { version = "0.6.6", features = ["catch-panic", "compression-gzip"] }
+password-worker = { version = "0.4.0", features = ["rust-argon2"] }
+validator = { version = "0.20.0", features = ["derive"] }
+jwt-simple = { version = "0.12.12"}
+const-str = { version = "0.7.0"}
+
+[dev-dependencies]
+watch = "0.2.3"
