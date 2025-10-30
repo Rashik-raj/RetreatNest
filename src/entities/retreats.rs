@@ -40,6 +40,8 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Categories,
+    #[sea_orm(has_many = "super::retreat_reviews::Entity")]
+    RetreatReviews,
     #[sea_orm(has_many = "super::retreat_users::Entity")]
     RetreatUsers,
     #[sea_orm(
@@ -58,6 +60,8 @@ pub enum Relation {
         on_delete = "Cascade"
     )]
     Users1,
+    #[sea_orm(has_many = "super::wishlists::Entity")]
+    Wishlists,
 }
 
 impl Related<super::categories::Entity> for Entity {
@@ -66,9 +70,21 @@ impl Related<super::categories::Entity> for Entity {
     }
 }
 
+impl Related<super::retreat_reviews::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RetreatReviews.def()
+    }
+}
+
 impl Related<super::retreat_users::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::RetreatUsers.def()
+    }
+}
+
+impl Related<super::wishlists::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Wishlists.def()
     }
 }
 
