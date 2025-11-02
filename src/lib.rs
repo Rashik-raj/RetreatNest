@@ -1,10 +1,10 @@
+mod entities;
+mod entities_helper;
 mod env;
 mod routes;
 mod serializers;
 mod state;
 mod utils;
-mod entities;
-mod entities_helper;
 
 use axum::Router;
 use tokio::net::TcpListener;
@@ -20,6 +20,7 @@ pub async fn run() {
         .merge(routes::users::users_router())
         .merge(routes::categories::category_router())
         .merge(routes::retreats::retreat_router())
+        .merge(routes::retreat_reviews::retreat_review_router())
         .layer(CatchPanicLayer::custom(handle_panic))
         .layer(CompressionLayer::new())
         .with_state(app_state);

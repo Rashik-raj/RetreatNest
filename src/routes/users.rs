@@ -90,11 +90,10 @@ async fn get_user(
 
 async fn update_user(
     State(state): State<AppState>,
-    AuthUser(user): AuthUser,
+    AuthUser(_): AuthUser,
     Path(user_id): Path<i64>,
     Json(payload): Json<UpdateUserSerializer>,
 ) -> Result<Response<Body>, Response<Body>> {
-    println!("{user:?}");
     payload
         .validate()
         .map_err(|e| to_error_response(e, StatusCode::BAD_REQUEST))?;
