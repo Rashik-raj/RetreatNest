@@ -21,6 +21,7 @@ pub async fn run() {
         .merge(routes::categories::category_router())
         .merge(routes::retreats::retreat_router())
         .merge(routes::retreat_reviews::retreat_review_router())
+        .merge(routes::wishlists::wishlist_router())
         .layer(CatchPanicLayer::custom(handle_panic))
         .layer(CompressionLayer::new())
         .with_state(app_state);

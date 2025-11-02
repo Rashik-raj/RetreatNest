@@ -1,7 +1,6 @@
 use axum::{
     body::Body, http::StatusCode, response::{IntoResponse, Response}, Json
 };
-use sea_orm::DbErr;
 use serde::Serialize;
 
 #[derive(Serialize, Clone)]

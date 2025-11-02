@@ -1,4 +1,4 @@
-use crate::{entities_helper::{RetreatModel, WishlistModel}, map_fields, utils::serializer::deserialize_some};
+use crate::{entities_helper::{RetreatModel}, map_fields, utils::serializer::deserialize_some};
 use sea_orm::prelude::Decimal;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -93,21 +93,4 @@ pub struct CreateRetreatUserSerializer {
 pub struct UpdateRetreatUserSerializer {
     #[serde(default, deserialize_with = "deserialize_some")]
     pub role: Option<Option<String>>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct ReadWishlistSerializer {
-    pub wishlist_id: i64,
-    pub retreat_id: i64,
-    pub user_id: i64
-}
-
-impl From<WishlistModel> for ReadWishlistSerializer {
-    fn from(value: WishlistModel) -> Self {
-        map_fields!(value, ReadWishlistSerializer, {
-            wishlist_id,
-            user_id,
-            retreat_id
-        })
-    }
 }
