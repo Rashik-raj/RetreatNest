@@ -20,6 +20,12 @@ cargo run --release
 
 ## Development
 
+### Installing additional depenndencies
+```bash
+cargo install sea-orm-cli 
+cargo install cargo-watch
+```
+
 ### Running a server with auto-reload
 ```bash
 cargo watch -x run

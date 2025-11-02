@@ -24,8 +24,8 @@ pub async fn run() {
         .layer(CompressionLayer::new())
         .with_state(app_state);
 
-    let server_host = env::ENV.server_host;
-    let server_port = env::ENV.server_port;
+    let server_host = &env::ENV.server_host;
+    let server_port = &env::ENV.server_port;
     let server_address: String = format!("{}:{}", server_host, server_port);
 
     let listener: TcpListener = TcpListener::bind(server_address).await.unwrap();

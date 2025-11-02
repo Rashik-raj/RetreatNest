@@ -11,7 +11,7 @@ pub struct AppState {
 impl AppState {
     pub async fn new() -> Self {
         Self {
-            database: Database::connect(env::ENV.database_url).await.unwrap(),
+            database: Database::connect(&env::ENV.database_url).await.unwrap(),
         }
     }
 }

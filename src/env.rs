@@ -1,26 +1,40 @@
-use const_str;
-
-use dotenvy_macro::dotenv;
+use dotenvy::dotenv;
+use std::env;
 
 pub struct Env {
-    pub server_host: &'static str,
-    pub server_port: &'static str,
-    pub database_url: &'static str,
-    pub password_salt: &'static str,
-    pub jwt_access_key: &'static str,
+    pub server_host: String,
+    pub server_port: String,
+    pub database_url: String,
+    pub password_salt: String,
+    pub jwt_access_key: String,
     pub jwt_access_lifetime_in_min: u64,
-    pub jwt_refresh_key: &'static str,
+    pub jwt_refresh_key: String,
     pub jwt_refresh_lifetime_in_min: u64,
 }
 
-pub const ENV: Env = Env {
-    server_host: dotenv!("SERVER_HOST"),
-    server_port: dotenv!("SERVER_PORT"),
-    database_url: dotenv!("DATABASE_URL"),
-    password_salt: dotenv!("PASSWORD_SALT"),
-    jwt_access_key: dotenv!("JWT_ACCESS_KEY"),
-    jwt_access_lifetime_in_min: const_str::parse!(dotenv!("JWT_ACCESS_LIFETIME_IN_MIN"), u64),
-    jwt_refresh_key: dotenv!("JWT_REFRESH_KEY"),
-    jwt_refresh_lifetime_in_min: const_str::parse!(dotenv!("JWT_REFRESH_LIFETIME_IN_MIN"), u64),
-};
+impl Env {
+    pub fn load() -> Self {
+        // Load .env file (if present)
+        dotenv().ok();
 
+        Self {
+            server_host: env::var("SERVER_HOST").expect("SERVER_HOST not set"),
+            server_port: env::var("SERVER_PORT").expect("SERVER_PORT not set"),
+            database_url: env::var("DATABASE_URL").expect("DATABASE_URL not set"),
+            password_salt: env::var("PASSWORD_SALT").expect("PASSWORD_SALT not set"),
+            jwt_access_key: env::var("JWT_ACCESS_KEY").expect("JWT_ACCESS_KEY not set"),
+            jwt_access_lifetime_in_min: env::var("JWT_ACCESS_LIFETIME_IN_MIN")
+                .expect("JWT_ACCESS_LIFETIME_IN_MIN not set")
+                .parse::<u64>()
+                .expect("JWT_ACCESS_LIFETIME_IN_MIN must be a valid integer"),
+            jwt_refresh_key: env::var("JWT_REFRESH_KEY").expect("JWT_REFRESH_KEY not set"),
+            jwt_refresh_lifetime_in_min: env::var("JWT_REFRESH_LIFETIME_IN_MIN")
+                .expect("JWT_REFRESH_LIFETIME_IN_MIN not set")
+                .parse::<u64>()
+                .expect("JWT_REFRESH_LIFETIME_IN_MIN must be a valid integer"),
+        }
+    }
+}
+
+
+pub static ENV: once_cell::sync::Lazy<Env> = once_cell::sync::Lazy::new(Env::load);

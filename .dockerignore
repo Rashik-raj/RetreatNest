@@ -1,0 +1,6 @@
+target/
+.env
+.gitignore
+example.env
+LICENSE
+README.md
