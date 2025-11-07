@@ -40,6 +40,8 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Categories,
+    #[sea_orm(has_many = "super::retreat_galleries::Entity")]
+    RetreatGalleries,
     #[sea_orm(has_many = "super::retreat_reviews::Entity")]
     RetreatReviews,
     #[sea_orm(has_many = "super::retreat_users::Entity")]
@@ -67,6 +69,12 @@ pub enum Relation {
 impl Related<super::categories::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Categories.def()
+    }
+}
+
+impl Related<super::retreat_galleries::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::RetreatGalleries.def()
     }
 }
 

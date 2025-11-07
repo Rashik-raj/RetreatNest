@@ -1,7 +1,8 @@
-pub mod response;
+pub mod extractors;
+pub mod jwt;
+pub mod macros;
 pub mod middlewares;
 pub mod password;
-pub mod macros;
+pub mod response;
 pub mod serializer;
-pub mod jwt;
-pub mod extractors;
+pub mod storage;

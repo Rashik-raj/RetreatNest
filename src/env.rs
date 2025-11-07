@@ -1,5 +1,5 @@
 use dotenvy::dotenv;
-use std::env;
+use std::{env, path::PathBuf};
 
 pub struct Env {
     pub server_host: String,
@@ -10,6 +10,7 @@ pub struct Env {
     pub jwt_access_lifetime_in_min: u64,
     pub jwt_refresh_key: String,
     pub jwt_refresh_lifetime_in_min: u64,
+    pub upload_dir: PathBuf,
 }
 
 impl Env {
@@ -32,9 +33,12 @@ impl Env {
                 .expect("JWT_REFRESH_LIFETIME_IN_MIN not set")
                 .parse::<u64>()
                 .expect("JWT_REFRESH_LIFETIME_IN_MIN must be a valid integer"),
+            upload_dir: env::var("UPLOAD_DIR")
+                .expect("UPLOAD_DIR not set")
+                .parse::<PathBuf>()
+                .expect("UPLOAD_DIR must be a valid path"),
         }
     }
 }
-
 
 pub static ENV: once_cell::sync::Lazy<Env> = once_cell::sync::Lazy::new(Env::load);

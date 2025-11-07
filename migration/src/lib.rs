@@ -6,6 +6,7 @@ mod m20250914_055447_add_updated_at_trigger_in_users;
 mod m20251008_141025_retreat_and_retreat_users;
 mod m20251030_145305_user_wishlist;
 mod m20251030_150713_retreat_reviews;
+mod m20251103_162943_retreat_gallery;
 
 pub struct Migrator;
 
@@ -19,6 +20,7 @@ impl MigratorTrait for Migrator {
             Box::new(m20251008_141025_retreat_and_retreat_users::Migration),
             Box::new(m20251030_145305_user_wishlist::Migration),
             Box::new(m20251030_150713_retreat_reviews::Migration),
+            Box::new(m20251103_162943_retreat_gallery::Migration),
         ]
     }
 }

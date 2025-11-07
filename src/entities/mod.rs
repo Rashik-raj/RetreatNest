@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod categories;
+pub mod retreat_galleries;
 pub mod retreat_reviews;
 pub mod retreat_users;
 pub mod retreats;

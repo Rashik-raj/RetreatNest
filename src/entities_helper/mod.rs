@@ -1,5 +1,6 @@
 #![allow(unused)]
 pub mod categories;
+pub mod retreat_galleries;
 pub mod retreat_reviews;
 pub mod retreat_users;
 pub mod retreats;
@@ -7,6 +8,10 @@ pub mod users;
 pub mod wishlists;
 
 pub use categories::{CategoryActiveModel, CategoryColumn, CategoryEntity, CategoryModel};
+pub use retreat_galleries::{
+    RetreatGalleriesActiveModel, RetreatGalleriesColumn, RetreatGalleriesEntity,
+    RetreatGalleriesModel,
+};
 pub use retreat_reviews::{
     RetreatReviewActiveModel, RetreatReviewColumn, RetreatReviewEntity, RetreatReviewModel,
 };
