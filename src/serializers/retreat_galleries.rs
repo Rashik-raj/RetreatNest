@@ -8,6 +8,7 @@ pub struct ReadRetreatGallerySerializer{
     retreat_id: i64,
     caption: Option<String>,
     order: Option<i32>,
+    gallery_category_id: Option<i64>,
     created_by: Option<i64>,
     updated_by: Option<i64>
 }
@@ -19,6 +20,7 @@ impl From<RetreatGalleriesModel> for ReadRetreatGallerySerializer {
             retreat_id,
             caption,
             order,
+            gallery_category_id,
             created_by,
             updated_by
         })

@@ -17,10 +17,19 @@ pub struct Model {
     pub updated_at: DateTimeWithTimeZone,
     pub created_by: Option<i64>,
     pub updated_by: Option<i64>,
+    pub gallery_category_id: Option<i64>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
+    #[sea_orm(
+        belongs_to = "super::gallery_categories::Entity",
+        from = "Column::GalleryCategoryId",
+        to = "super::gallery_categories::Column::GalleryCategoryId",
+        on_update = "Cascade",
+        on_delete = "SetNull"
+    )]
+    GalleryCategories,
     #[sea_orm(
         belongs_to = "super::retreats::Entity",
         from = "Column::RetreatId",
@@ -45,6 +54,12 @@ pub enum Relation {
         on_delete = "SetNull"
     )]
     Users1,
+}
+
+impl Related<super::gallery_categories::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::GalleryCategories.def()
+    }
 }
 
 impl Related<super::retreats::Entity> for Entity {

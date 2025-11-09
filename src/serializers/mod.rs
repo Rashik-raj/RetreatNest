@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod categories;
+pub mod gallery_categories;
 pub mod retreat_galleries;
 pub mod retreat_reviews;
 pub mod retreats;

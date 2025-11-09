@@ -14,8 +14,9 @@ use validator::Validate;
 
 use crate::{
     entities_helper::{
-        RetreatColumn, RetreatEntity, RetreatGalleriesActiveModel, RetreatGalleriesColumn,
-        RetreatGalleriesEntity, RetreatGalleriesModel,
+        GalleryCategoriesColumn, GalleryCategoriesEntity, RetreatColumn, RetreatEntity,
+        RetreatGalleriesActiveModel, RetreatGalleriesColumn, RetreatGalleriesEntity,
+        RetreatGalleriesModel,
     },
     serializers::{
         retreat_galleries::ReadRetreatGallerySerializer,
@@ -25,7 +26,7 @@ use crate::{
     utils::{
         extractors::auth::AuthUser,
         response::{CustomResponse, to_error_response, to_error_response_with_message},
-        storage::store_retreat_gallery,
+        storage::{remove_retreat_gallery, store_retreat_gallery},
     },
 };
 
@@ -47,19 +48,39 @@ async fn create_retreat_gallery(
 
     let mut caption: Option<String> = None;
     let mut image_path: String = "".to_string();
+    let mut gallery_category_id: Option<i64> = None;
 
     while let Some(field) = multipart.next_field().await.unwrap_or(None) {
         let name = field.name().unwrap_or("").to_string();
         match name.as_str() {
             "caption" => {
-                if let Ok(text) = field.text().await {
-                    caption = Some(text);
+                if let Ok(value) = field.text().await {
+                    caption = Some(value);
                 }
             }
             "image" => {
                 let file_name: String = field.file_name().unwrap().to_string();
                 let file_content: Bytes = field.bytes().await.unwrap();
-                image_path = store_retreat_gallery(file_content, file_name).await;
+                image_path = store_retreat_gallery(file_content, file_name, None).await;
+            }
+            "gallery_category_id" => {
+                if let Ok(value) = field.text().await {
+                    let gallery_category_id_i64 = value.parse::<i64>().unwrap();
+                    GalleryCategoriesEntity::find()
+                        .filter(
+                            GalleryCategoriesColumn::GalleryCategoryId.eq(gallery_category_id_i64),
+                        )
+                        .one(&state.database)
+                        .await
+                        .map_err(|e| to_error_response(e, StatusCode::INTERNAL_SERVER_ERROR))?
+                        .ok_or_else(|| {
+                            to_error_response_with_message(
+                                "Gallery Category not found.",
+                                StatusCode::NOT_FOUND,
+                            )
+                        })?;
+                    gallery_category_id = Some(gallery_category_id_i64)
+                }
             }
             _ => {}
         }
@@ -68,6 +89,7 @@ async fn create_retreat_gallery(
         caption: Set(caption),
         image_path: Set(image_path),
         retreat_id: Set(retreat_id),
+        gallery_category_id: Set(gallery_category_id),
         created_by: Set(Some(user.user_id)),
         updated_by: Set(Some(user.user_id)),
         ..Default::default()
@@ -121,12 +143,8 @@ async fn update_retreat_gallery(
     State(state): State<AppState>,
     AuthUser(_): AuthUser,
     Path((retreat_id, gallery_id)): Path<(i64, i64)>,
-    Json(payload): Json<UpdateRetreatReviewSerializer>,
+    mut multipart: Multipart,
 ) -> Result<Response<Body>, Response<Body>> {
-    payload
-        .validate()
-        .map_err(|e| to_error_response(e, StatusCode::BAD_REQUEST))?;
-
     RetreatEntity::find()
         .filter(RetreatColumn::RetreatId.eq(retreat_id))
         .one(&state.database)
@@ -145,11 +163,48 @@ async fn update_retreat_gallery(
         .ok_or_else(|| {
             to_error_response_with_message("Retreat gallery not found.", StatusCode::NOT_FOUND)
         })?;
-
+    let image_path: String = instance.image_path.clone();
     // Convert to ActiveModel for editing
     let mut active_model: RetreatGalleriesActiveModel = instance.into_active_model();
 
-    // set_fields!(active_model, payload, rating, review);
+    while let Some(field) = multipart.next_field().await.unwrap_or(None) {
+        let name = field.name().unwrap_or("").to_string();
+        match name.as_str() {
+            "caption" => {
+                if let Ok(value) = field.text().await {
+                    let caption: Option<String> = Some(value);
+                    active_model.caption = Set(caption);
+                }
+            }
+            "image" => {
+                let file_name: String = field.file_name().unwrap().to_string();
+                let file_content: Bytes = field.bytes().await.unwrap();
+                let image_path: String = store_retreat_gallery(file_content, file_name, Some(image_path.clone())).await;
+                active_model.image_path = Set(image_path);
+            }
+            "gallery_category_id" => {
+                if let Ok(value) = field.text().await {
+                    let gallery_category_id_i64 = value.parse::<i64>().unwrap();
+                    GalleryCategoriesEntity::find()
+                        .filter(
+                            GalleryCategoriesColumn::GalleryCategoryId.eq(gallery_category_id_i64),
+                        )
+                        .one(&state.database)
+                        .await
+                        .map_err(|e| to_error_response(e, StatusCode::INTERNAL_SERVER_ERROR))?
+                        .ok_or_else(|| {
+                            to_error_response_with_message(
+                                "Gallery Category not found.",
+                                StatusCode::NOT_FOUND,
+                            )
+                        })?;
+                    let gallery_category_id: Option<i64> = Some(gallery_category_id_i64);
+                    active_model.gallery_category_id = Set(gallery_category_id);
+                }
+            }
+            _ => {}
+        }
+    }
 
     // Save the updated Retreat
     let instance: RetreatGalleriesModel = active_model
@@ -178,10 +233,12 @@ async fn delete_retreat_gallery(
             to_error_response_with_message("Retreat gallery not found.", StatusCode::NOT_FOUND)
         })?;
 
-    // todo check if the logged in user is from the retreat
+    let image_relative_path = instance.image_path.clone();
 
     // Convert to ActiveModel for editing
     let active_model: RetreatGalleriesActiveModel = instance.into_active_model();
+
+    remove_retreat_gallery(image_relative_path).await;
 
     active_model
         .delete(&state.database)
