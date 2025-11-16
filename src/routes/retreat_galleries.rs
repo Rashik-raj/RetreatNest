@@ -1,8 +1,10 @@
+use std::error::Error;
+
 use axum::{
-    Json, Router,
+    Router,
     body::{Body, Bytes},
     extract::{Multipart, Path, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::Response,
     routing::{delete, get, patch, post},
 };
@@ -10,7 +12,6 @@ use sea_orm::{
     ActiveModelTrait, ActiveValue::Set, ColumnTrait, EntityTrait, IntoActiveModel, QueryFilter,
     TryIntoModel,
 };
-use validator::Validate;
 
 use crate::{
     entities_helper::{
@@ -18,15 +19,14 @@ use crate::{
         RetreatGalleriesActiveModel, RetreatGalleriesColumn, RetreatGalleriesEntity,
         RetreatGalleriesModel,
     },
-    serializers::{
-        retreat_galleries::ReadRetreatGallerySerializer,
-        retreat_reviews::UpdateRetreatReviewSerializer,
-    },
+    serializers::retreat_galleries::ReadRetreatGallerySerializer,
     state::AppState,
     utils::{
         extractors::auth::AuthUser,
         response::{CustomResponse, to_error_response, to_error_response_with_message},
-        storage::{remove_retreat_gallery, store_retreat_gallery},
+        storage::{
+            read_retreat_gallery_with_headers, remove_retreat_gallery, store_retreat_gallery,
+        },
     },
 };
 
@@ -179,7 +179,8 @@ async fn update_retreat_gallery(
             "image" => {
                 let file_name: String = field.file_name().unwrap().to_string();
                 let file_content: Bytes = field.bytes().await.unwrap();
-                let image_path: String = store_retreat_gallery(file_content, file_name, Some(image_path.clone())).await;
+                let image_path: String =
+                    store_retreat_gallery(file_content, file_name, Some(image_path.clone())).await;
                 active_model.image_path = Set(image_path);
             }
             "gallery_category_id" => {
@@ -233,7 +234,7 @@ async fn delete_retreat_gallery(
             to_error_response_with_message("Retreat gallery not found.", StatusCode::NOT_FOUND)
         })?;
 
-    let image_relative_path = instance.image_path.clone();
+    let image_relative_path: String = instance.image_path.clone();
 
     // Convert to ActiveModel for editing
     let active_model: RetreatGalleriesActiveModel = instance.into_active_model();
@@ -252,6 +253,47 @@ async fn delete_retreat_gallery(
         .build())
 }
 
+async fn get_gallery_image(
+    State(state): State<AppState>,
+    Path((retreat_id, gallery_id)): Path<(i64, i64)>,
+) -> Result<Response<Body>, Response<Body>> {
+    let instance: RetreatGalleriesModel = RetreatGalleriesEntity::find()
+        .filter(RetreatGalleriesColumn::GalleryId.eq(gallery_id))
+        .filter(RetreatGalleriesColumn::RetreatId.eq(retreat_id))
+        .one(&state.database)
+        .await
+        .map_err(|e| to_error_response(e, StatusCode::INTERNAL_SERVER_ERROR))?
+        .ok_or_else(|| {
+            to_error_response_with_message("Retreat gallery not found.", StatusCode::NOT_FOUND)
+        })?;
+
+    let image_relative_path: String = instance.image_path.clone();
+
+    let result: Result<(Vec<u8>, HeaderMap), Box<dyn Error>> =
+        read_retreat_gallery_with_headers(image_relative_path).await;
+    let (bytes, headers) = match result {
+        Ok(v) => v,
+        Err(_) => {
+            return Err(to_error_response_with_message(
+                "Something went wrong.",
+                StatusCode::INTERNAL_SERVER_ERROR,
+            ));
+        }
+    };
+
+    let mut builder = Response::builder().status(StatusCode::OK);
+    // Insert headers into the response
+    {
+        let headers_map = builder.headers_mut().unwrap();
+        for (k, v) in headers.iter() {
+            headers_map.insert(k, v.clone());
+        }
+    }
+
+    let response = builder.body(Body::from(Bytes::from(bytes))).unwrap();
+    Ok(response)
+}
+
 pub fn retreat_gallery_router() -> Router<AppState> {
     let router = Router::new()
         .route(
@@ -263,12 +305,16 @@ pub fn retreat_gallery_router() -> Router<AppState> {
             get(list_retreat_gallery),
         )
         .route(
-            "/retreats/{retreat_id}/galleries/{review_id}/",
+            "/retreats/{retreat_id}/galleries/{gallery_id}/",
             patch(update_retreat_gallery),
         )
         .route(
-            "/retreats/{retreat_id}/galleries/{review_id}/",
+            "/retreats/{retreat_id}/galleries/{gallery_id}/",
             delete(delete_retreat_gallery),
+        )
+        .route(
+            "/retreats/{retreat_id}/galleries/{gallery_id}/image/",
+            get(get_gallery_image),
         );
     return router;
 }

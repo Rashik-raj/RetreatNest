@@ -1,6 +1,15 @@
-
-use axum::body::Bytes;
-use tokio::{fs::{self, File}, io::AsyncWriteExt};
+use axum::{
+    body::Bytes,
+    http::{
+        HeaderMap,
+        header::{CONTENT_DISPOSITION, CONTENT_TYPE},
+    },
+};
+use std::error::Error;
+use tokio::{
+    fs::{self, File},
+    io::{AsyncReadExt, AsyncWriteExt},
+};
 use uuid::Uuid;
 
 use crate::env::ENV;
@@ -21,7 +30,11 @@ fn replace_file_name_with_uuid(file_path: &str) -> String {
     }
 }
 
-pub async fn store_retreat_gallery(file_content: Bytes, file_name: String, old_image_path: Option<String>) -> String {
+pub async fn store_retreat_gallery(
+    file_content: Bytes,
+    file_name: String,
+    old_image_path: Option<String>,
+) -> String {
     // Remove old image if provided
     if let Some(old_relative_path) = old_image_path {
         remove_retreat_gallery(old_relative_path).await;
@@ -50,4 +63,35 @@ pub async fn remove_retreat_gallery(image_path: String) {
     if fs::remove_file(&full_old_path).await.is_err() {
         eprintln!("Warning: failed to remove file at {:?}", full_old_path);
     }
+}
+
+pub async fn read_retreat_gallery_with_headers(
+    image_path: String,
+) -> Result<(Vec<u8>, HeaderMap), Box<dyn Error>> {
+    let upload_dir = ENV.upload_dir.clone();
+    let gallery_path = upload_dir.join(image_path);
+    let mut image_content: Vec<u8> = Vec::new();
+
+    let mut file = File::open(&gallery_path).await?;
+    file.read_to_end(&mut image_content).await?;
+    let mut headers = HeaderMap::new();
+    headers.insert(
+        CONTENT_TYPE,
+        // Infer content type based on file extension, or set a default
+        mime_guess::from_path(&gallery_path)
+            .first_or_octet_stream()
+            .as_ref()
+            .parse()
+            .unwrap(),
+    );
+    headers.insert(
+        CONTENT_DISPOSITION,
+        format!(
+            "attachment; filename=\"{}\"",
+            &gallery_path.file_name().unwrap().to_string_lossy()
+        )
+        .parse()
+        .unwrap(),
+    );
+    Ok((image_content, headers))
 }
